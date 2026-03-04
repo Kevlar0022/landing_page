@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Product — Join the Waitlist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+body{
+  font-family: system-ui, sans-serif;
+  background:#0f172a;
+  color:#f8fafc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  margin:0;
+}
+
+.container{
+  max-width:520px;
+  padding:40px;
+  text-align:center;
+}
+
+h1{
+  font-size:2rem;
+  margin-bottom:10px;
+}
+
+p{
+  opacity:0.8;
+}
+
+form{
+  margin-top:30px;
+}
+
+input[type=email]{
+  width:100%;
+  padding:14px;
+  border-radius:8px;
+  border:none;
+  margin-bottom:12px;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  background:#3b82f6;
+  border:none;
+  color:white;
+  font-weight:600;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#2563eb;
+}
+
+.hidden{
+  display:none;
+}
+
+#status{
+  margin-top:12px;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Your Product</h1>
+<p>Sign up to get early access.</p>
+
+<form id="signup-form">
+
+<input
+  type="email"
+  name="email"
+  id="email"
+  placeholder="you@example.com"
+  required
+/>
+
+<!-- Honeypot field -->
+<input
+  type="text"
+  name="company"
+  class="hidden"
+  autocomplete="off"
+/>
+
+<!-- Turnstile widget -->
+<div
+  class="cf-turnstile"
+  data-sitekey="YOUR_TURNSTILE_SITE_KEY"
+></div>
+
+<button type="submit">Join waitlist</button>
+
+<div id="status"></div>
+
+</form>
+
+</div>
+
+<script>
+const form = document.getElementById("signup-form");
+const status = document.getElementById("status");
+
+const startedAt = Date.now();
+
+form.addEventListener("submit", async (e) => {
+
+  e.preventDefault();
+
+  const email = document.getElementById("email").value.trim();
+  const honeypot = form.company.value;
+
+  if(honeypot){
+    return;
+  }
+
+  const token = document.querySelector('[name="cf-turnstile-response"]').value;
+
+  if(!token){
+    status.innerText = "Please complete verification.";
+    return;
+  }
+
+  status.innerText = "Submitting...";
+
+  try {
+
+    const res = await fetch("https://api.yourdomain.com/subscribe", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        email: email,
+        turnstileToken: token,
+        startedAt: startedAt
+      })
+    });
+
+    if(res.ok){
+      status.innerText = "You're on the list 🎉";
+      form.reset();
+    }
+    else{
+      status.innerText = "Something went wrong.";
+    }
+
+  } catch(err){
+    status.innerText = "Network error.";
+  }
+
+});
+</script>
+
+</body>
+</html>
