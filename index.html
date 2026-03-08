@@ -561,12 +561,14 @@
           });
 
           if (res.ok) {
-            form.reset();
-            if (window.turnstile) {
-              const widget = document.querySelector(".cf-turnstile");
-              if (widget) window.turnstile.reset(widget);
-            }
-            setStatus("You're on the list.", "success");
+            form.style.display = "none";
+            const msg = document.createElement("p");
+            msg.className = "status success";
+            msg.style.cssText = "font-size:16px;margin-top:0";
+            msg.textContent = "You\u2019re on the list. Check your inbox.";
+            form.parentNode.insertBefore(msg, form);
+          } else if (res.status === 500) {
+            setStatus("Failed to sign you up \u2014 please email me directly at sattikevin@gmail.com and I\u2019ll get you added.", "error");
           } else {
             setStatus("Something went wrong. Please try again.", "error");
           }
