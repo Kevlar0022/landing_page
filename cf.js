@@ -53,20 +53,20 @@ export default {
     const startedAt = Number(body.startedAt || 0); // ms timestamp from page load
 
     // Honeypot filled => bot
-    if (honeypot) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] blocked: honeypot — ${ip}`)); return reply("OK"); }
+    if (honeypot) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, "error: honeypot")); return reply("OK"); }
 
     // Too-fast submit => likely bot (tune threshold)
-    if (startedAt && now - startedAt < 1200) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] blocked: too-fast — ${now - startedAt}ms`)); return reply("OK"); }
+    if (startedAt && now - startedAt < 1200) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, "error: too fast")); return reply("OK"); }
 
     // basic email sanity (keep it light)
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] blocked: invalid-email — ${ip}`));
+      ctx.waitUntil(slack(env.SLACK_WEBHOOK, "error: invalid email"));
       return reply("OK");
     }
 
     // ---- Turnstile verify ----
     const token = body.turnstileToken;
-    if (!token) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] blocked: no-token — ${ip}`)); return reply("OK"); }
+    if (!token) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, "error: no token")); return reply("OK"); }
 
     const form = new FormData();
     form.append("secret", env.TURNSTILE_SECRET);
@@ -78,7 +78,7 @@ export default {
       body: form,
     }).then(r => r.json());
 
-    if (!verify.success) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] blocked: turnstile-failed — ${(verify["error-codes"] || []).join(",")}`)); return reply("OK"); }
+    if (!verify.success) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, "error: turnstile")); return reply("OK"); }
 
     // ---- call Kit (server-side, key stays secret) ----
     const kitRes = await fetch(`https://api.kit.com/v4/subscribers`, {
@@ -89,9 +89,9 @@ export default {
       },
       body: JSON.stringify({ email_address: email }),
     });
-    if (!kitRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] error: kit — status=${kitRes.status}`)); return reply("KIT_ERROR", 500); }
+    if (!kitRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: kit ${kitRes.status}`)); return reply("KIT_ERROR", 500); }
 
-    ctx.waitUntil(slack(env.SLACK_WEBHOOK, `[waitlist] success: subscribed — ${email}`));
+    ctx.waitUntil(slack(env.SLACK_WEBHOOK, "success"));
 
     // Always return generic OK to avoid email enumeration
     return reply("OK");
