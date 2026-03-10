@@ -91,6 +91,14 @@ export default {
     });
     if (!kitRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: kit ${kitRes.status}`)); return reply("KIT_ERROR", 500); }
 
+    // ---- add to sequence (v3 API) ----
+    const sequenceRes = await fetch(`https://api.kit.com/v3/sequences/2679413/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: env.KIT_API_KEY_V3, email }),
+    });
+    if (!sequenceRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: sequence ${sequenceRes.status}`)); }
+
     ctx.waitUntil(slack(env.SLACK_WEBHOOK, "success"));
 
     // Always return generic OK to avoid email enumeration
