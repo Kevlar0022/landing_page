@@ -89,15 +89,40 @@ export default {
       },
       body: JSON.stringify({ email_address: email }),
     });
-    if (!kitRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: kit ${kitRes.status}`)); return reply("KIT_ERROR", 500); }
+    if (!kitRes.ok) {
+      ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: kit ${kitRes.status}`));
+      // Save failed email to KV with 24hr TTL
+      const failKey = `fail:${Date.now()}:${email}`;
+      const failData = JSON.stringify({
+        email,
+        error: 'kit_subscriber_failed',
+        status: kitRes.status,
+        timestamp: new Date().toISOString(),
+        ip
+      });
+      ctx.waitUntil(env.FAILED_EMAILS_KV.put(failKey, failData, { expirationTtl: 86400 }));
+      return reply("KIT_ERROR", 500);
+    }
 
     // ---- add to sequence (v3 API) ----
-    const sequenceRes = await fetch(`https://api.kit.com/v3/sequences/2679413/subscribe`, {
+    const sequenceRes = await fetch(`https://api.kit.com/v3/sequences/2692396/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: env.KIT_API_KEY_V3, email }),
     });
-    if (!sequenceRes.ok) { ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: sequence ${sequenceRes.status}`)); }
+    if (!sequenceRes.ok) {
+      ctx.waitUntil(slack(env.SLACK_WEBHOOK, `error: sequence ${sequenceRes.status}`));
+      // Save failed email to KV with 24hr TTL
+      const failKey = `fail:${Date.now()}:${email}`;
+      const failData = JSON.stringify({
+        email,
+        error: 'kit_sequence_failed',
+        status: sequenceRes.status,
+        timestamp: new Date().toISOString(),
+        ip
+      });
+      ctx.waitUntil(env.FAILED_EMAILS_KV.put(failKey, failData, { expirationTtl: 86400 }));
+    }
 
     ctx.waitUntil(slack(env.SLACK_WEBHOOK, "success"));
 
