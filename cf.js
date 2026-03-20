@@ -10,7 +10,7 @@ async function slack(url, text) {
 export default {
   async fetch(req, env, ctx) {
     const origin = req.headers.get("Origin") || "";
-    const allowedOrigin = "https://kevlar0022.github.io";
+    const allowedOrigin = "https://www.kevinsatti.com";
 
     const corsHeaders =
       origin === allowedOrigin
